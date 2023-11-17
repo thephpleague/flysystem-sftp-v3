@@ -125,10 +125,9 @@ class SftpConnectionProvider implements ConnectionProvider
         } elseif ($this->useAgent) {
             $this->authenticateWithAgent($connection);
         } elseif ( ! $connection->login($this->username, $this->password)) {
-            $lastError = trim($connection->getLastError());
-            if (str_start('SSH_MSG_DISCONNECT: NET_SSH2_DISCONNECT_BY_APPLICATION', $lastError)) {
+            if (UnableToConnect::matches($connection->getLastError())) {
                 throw UnableToConnect::disconnected(
-                    trim(str_after($lastError, 'SSH_MSG_DISCONNECT: NET_SSH2_DISCONNECT_BY_APPLICATION'))
+                    $connection->getLastError()
                 );
             }
 
