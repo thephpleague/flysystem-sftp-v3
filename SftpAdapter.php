@@ -25,6 +25,7 @@ use League\Flysystem\UnixVisibility\VisibilityConverter;
 use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use League\MimeTypeDetection\MimeTypeDetector;
 use phpseclib3\Net\SFTP;
+use phpseclib3\Net\SFTP\Stream;
 use Throwable;
 
 use function rtrim;
@@ -166,11 +167,17 @@ class SftpAdapter implements FilesystemAdapter
     {
         $location = $this->prefixer->prefixPath($path);
         $connection = $this->connectionProvider->provideConnection();
-        /** @var resource $readStream */
-        $readStream = fopen('php://temp', 'w+');
 
-        if ( ! $connection->get($location, $readStream)) {
-            fclose($readStream);
+        Stream::register();
+
+        $context = [
+            'sftp' => ['sftp' => $connection],
+        ];
+
+        $context = stream_context_create($context);
+        $readStream = fopen('sftp://' . $connection->getResourceId() . '/' . $location, 'r', false, $context);
+
+        if ($readStream === false) {
             throw UnableToReadFile::fromLocation($path);
         }
 
